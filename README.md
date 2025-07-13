@@ -2,7 +2,7 @@
 
 ## **📌 1\. Project Title (Provisional)**
 
-**"On Mute"** – Communication Without Barriers![][image1]
+**"On Mute"** – Communication Without Barriers![image1](https://github.com/VedantJoshi-2024/onMute/blob/master/assets/images/onMute.png)
 
 ---
 
