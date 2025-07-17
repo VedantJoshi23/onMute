@@ -1,17 +1,20 @@
 import { Colors } from '@/constants/Colors';
+import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ChatMessage, ChatUser } from '@/types/chat';
 import React from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface ChatBubbleProps {
@@ -61,6 +64,14 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, currentUser, colors })
         {!isCurrentUser && (
           <Text style={[styles.senderName, { color: colors.tint }]}>
             {message.user.name}
+            {message.isAudioTranscription && (
+              <Text style={[styles.audioIndicator, { color: colors.tint }]}> 🎤</Text>
+            )}
+          </Text>
+        )}
+        {message.isAudioTranscription && isCurrentUser && (
+          <Text style={[styles.audioIndicator, { color: 'rgba(255,255,255,0.8)' }]}>
+            🎤 Audio transcription
           </Text>
         )}
         <Text style={[
@@ -86,6 +97,7 @@ interface CustomChatProps {
   user: ChatUser;
   placeholder?: string;
   maxLength?: number;
+  onAudioMessage?: (transcription: string, audioUri: string) => void;
 }
 
 export const CustomChat: React.FC<CustomChatProps> = ({
@@ -93,12 +105,25 @@ export const CustomChat: React.FC<CustomChatProps> = ({
   onSend,
   user,
   placeholder = "Type a message...",
-  maxLength = 1000
+  maxLength = 1000,
+  onAudioMessage
 }) => {
   const [inputText, setInputText] = React.useState('');
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+  const {
+    isRecording,
+    isTranscribing,
+    duration,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    transcribeAudio,
+    formatDuration,
+  } = useAudioRecording();
 
   const handleSend = () => {
     const trimmedText = inputText.trim();
@@ -118,6 +143,60 @@ export const CustomChat: React.FC<CustomChatProps> = ({
     }
   };
 
+  const handleAudioRecording = async () => {
+    console.log('handleAudioRecording called, isRecording:', isRecording);
+    if (isRecording) {
+      // Stop recording and transcribe
+      try {
+        console.log('Stopping recording...');
+        const audioUri = await stopRecording();
+        console.log('Recording stopped, audioUri:', audioUri);
+        if (audioUri) {
+          console.log('Starting transcription...');
+          const transcription = await transcribeAudio(audioUri);
+          console.log('Transcription completed:', transcription);
+          if (onAudioMessage) {
+            console.log('Calling onAudioMessage...');
+            onAudioMessage(transcription, audioUri);
+          } else {
+            console.log('onAudioMessage is not provided');
+          }
+        }
+      } catch (error) {
+        console.error('Error processing audio:', error);
+        Alert.alert('Error', 'Failed to process audio recording');
+      }
+    } else {
+      // Start recording
+      console.log('Starting recording...');
+      const success = await startRecording();
+      console.log('Recording start result:', success);
+      if (success) {
+        // Start pulse animation
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.2,
+              duration: 800,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 800,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      }
+    }
+  };
+
+  const handleCancelRecording = async () => {
+    await cancelRecording();
+    pulseAnim.stopAnimation();
+    pulseAnim.setValue(1);
+  };
+
   React.useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
     if (scrollViewRef.current && messages.length > 0) {
@@ -126,6 +205,14 @@ export const CustomChat: React.FC<CustomChatProps> = ({
       }, 100);
     }
   }, [messages]);
+
+  React.useEffect(() => {
+    // Stop pulse animation when recording stops
+    if (!isRecording) {
+      pulseAnim.stopAnimation();
+      pulseAnim.setValue(1);
+    }
+  }, [isRecording, pulseAnim]);
 
   // Sort messages by creation date (oldest first for proper chat order)
   const sortedMessages = [...messages].sort((a, b) => 
@@ -173,41 +260,106 @@ export const CustomChat: React.FC<CustomChatProps> = ({
         backgroundColor: colors.background,
         borderTopColor: colors.tabIconDefault 
       }]}>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={[styles.textInput, { 
-              backgroundColor: colorScheme === 'dark' ? '#2a2a2a' : '#f5f5f5',
-              borderColor: colors.tabIconDefault,
-              color: colors.text 
-            }]}
-            value={inputText}
-            onChangeText={handleInputChange}
-            placeholder={placeholder}
-            placeholderTextColor={colors.tabIconDefault}
-            multiline
-            maxLength={maxLength}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            blurOnSubmit={false}
-          />
-          {inputText.length > maxLength * 0.8 && (
-            <Text style={[styles.characterCount, { 
-              color: inputText.length >= maxLength ? '#ff4444' : colors.tabIconDefault 
-            }]}>
-              {inputText.length}/{maxLength}
+        {isRecording ? (
+          <View style={styles.recordingContainer}>
+            <Animated.View style={[styles.recordingIndicator, { transform: [{ scale: pulseAnim }] }]}>
+              <View style={[styles.recordingDot, { backgroundColor: '#ff4444' }]} />
+            </Animated.View>
+            <View style={styles.recordingInfo}>
+              <Text style={[styles.recordingText, { color: colors.text }]}>
+                Recording... {formatDuration(duration)}
+              </Text>
+              <Text style={[styles.recordingHint, { color: colors.tabIconDefault }]}>
+                Tap stop to transcribe, or cancel to discard
+              </Text>
+            </View>
+            <View style={styles.recordingActions}>
+              <TouchableOpacity
+                style={[styles.cancelButton, { backgroundColor: colors.tabIconDefault }]}
+                onPress={handleCancelRecording}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.stopButton, { backgroundColor: '#ff4444' }]}
+                onPress={handleAudioRecording}
+              >
+                <Text style={styles.stopButtonText}>Stop</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : isTranscribing ? (
+          <View style={styles.transcribingContainer}>
+            <ActivityIndicator size="small" color={colors.tint} />
+            <Text style={[styles.transcribingText, { color: colors.text }]}>
+              Transcribing audio...
             </Text>
-          )}
-        </View>
-        <TouchableOpacity
-          style={[styles.sendButton, { 
-            backgroundColor: canSend ? colors.tint : colors.tabIconDefault,
-            opacity: canSend ? 1 : 0.6,
-          }]}
-          onPress={handleSend}
-          disabled={!canSend}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* Test button for simulating audio transcription */}
+            <TouchableOpacity
+              style={[styles.audioButton, { 
+                backgroundColor: '#ff6b6b',
+                opacity: 0.9,
+                marginRight: 8,
+              }]}
+              onPress={() => {
+                console.log('Test audio transcription button pressed');
+                if (onAudioMessage) {
+                  onAudioMessage('This is a test transcription message', 'file://test-audio.m4a');
+                }
+              }}
+            >
+              <Text style={styles.audioButtonText}>🧪</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.audioButton, { 
+                backgroundColor: colors.tint,
+                opacity: 0.9,
+              }]}
+              onPress={handleAudioRecording}
+              disabled={isTranscribing}
+            >
+              <Text style={styles.audioButtonText}>🎤</Text>
+            </TouchableOpacity>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={[styles.textInput, { 
+                  backgroundColor: colorScheme === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                  borderColor: colors.tabIconDefault,
+                  color: colors.text 
+                }]}
+                value={inputText}
+                onChangeText={handleInputChange}
+                placeholder={placeholder}
+                placeholderTextColor={colors.tabIconDefault}
+                multiline
+                maxLength={maxLength}
+                onSubmitEditing={handleSend}
+                returnKeyType="send"
+                blurOnSubmit={false}
+              />
+              {inputText.length > maxLength * 0.8 && (
+                <Text style={[styles.characterCount, { 
+                  color: inputText.length >= maxLength ? '#ff4444' : colors.tabIconDefault 
+                }]}>
+                  {inputText.length}/{maxLength}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.sendButton, { 
+                backgroundColor: canSend ? colors.tint : colors.tabIconDefault,
+                opacity: canSend ? 1 : 0.6,
+              }]}
+              onPress={handleSend}
+              disabled={!canSend}
+            >
+              <Text style={styles.sendButtonText}>Send</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -257,6 +409,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
+  audioIndicator: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
   messageText: {
     fontSize: 16,
     lineHeight: 20,
@@ -272,6 +428,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     alignItems: 'flex-end',
+    minHeight: 60,
   },
   inputWrapper: {
     flex: 1,
@@ -302,5 +459,82 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  audioButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  audioButtonText: {
+    fontSize: 20,
+  },
+  recordingContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  recordingIndicator: {
+    marginRight: 12,
+  },
+  recordingDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  recordingInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  recordingText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  recordingHint: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  recordingActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  stopButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stopButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  transcribingContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  transcribingText: {
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

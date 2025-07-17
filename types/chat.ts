@@ -3,6 +3,8 @@ export interface ChatMessage {
   text: string;
   createdAt: Date;
   user: ChatUser;
+  isAudioTranscription?: boolean;
+  audioUri?: string;
 }
 
 export interface ChatUser {

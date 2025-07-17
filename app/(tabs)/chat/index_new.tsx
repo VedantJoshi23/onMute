@@ -30,48 +30,13 @@ export default function ChatListScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   
   const [chats, setChats] = useState<StoredChatListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // Start with false
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [hasCheckedForChats, setHasCheckedForChats] = useState(false);
-
-  const checkAndLoadChats = useCallback(async () => {
-    try {
-      console.log('[ChatIndex] Starting checkAndLoadChats...');
-      
-      // Quick check if there are any chats to load
-      console.log('[ChatIndex] Checking for existing chats...');
-      const hasChats = await chatStorage.hasExistingChats();
-      console.log('[ChatIndex] Has existing chats:', hasChats);
-      
-      if (!hasChats) {
-        console.log('[ChatIndex] No existing chats found - showing empty state');
-        setChats([]);
-        setHasCheckedForChats(true);
-        return;
-      }
-
-      // Only show loading if there are chats to load
-      console.log('[ChatIndex] Setting loading to true for existing chats...');
-      setIsLoading(true);
-      console.log('[ChatIndex] Loading existing chats...');
-      const loadedChats = await chatStorage.getAllChats();
-      console.log('[ChatIndex] Loaded chats:', loadedChats.length);
-      setChats(loadedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    } catch (error) {
-      console.error('[ChatIndex] Error loading chats:', error);
-      Alert.alert('Error', 'Failed to load chats');
-    } finally {
-      console.log('[ChatIndex] Setting loading states to false...');
-      setIsLoading(false);
-      setIsRefreshing(false);
-      setHasCheckedForChats(true);
-    }
-  }, []);
 
   const loadChats = useCallback(async () => {
     try {
-      console.log('Refreshing chats...');
+      console.log('Loading chats...');
       const loadedChats = await chatStorage.getAllChats();
       console.log('Loaded chats:', loadedChats.length);
       setChats(loadedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -79,6 +44,7 @@ export default function ChatListScreen() {
       console.error('Error loading chats:', error);
       Alert.alert('Error', 'Failed to load chats');
     } finally {
+      setIsLoading(false);
       setIsRefreshing(false);
     }
   }, []);
@@ -129,13 +95,8 @@ export default function ChatListScreen() {
   }, [loadChats]);
 
   useEffect(() => {
-    checkAndLoadChats();
-  }, [checkAndLoadChats]);
-
-  // Show loading only if we haven't checked yet OR if we're actually loading existing chats
-  if (!hasCheckedForChats || isLoading) {
-    return <ChatLoading message={isLoading ? "Loading your chats..." : "Checking for chats..."} />;
-  }
+    loadChats();
+  }, [loadChats]);
 
   const renderChatItem = ({ item }: { item: StoredChatListItem }) => (
     <TouchableOpacity
@@ -194,6 +155,10 @@ export default function ChatListScreen() {
       </TouchableOpacity>
     </View>
   );
+
+  if (isLoading) {
+    return <ChatLoading message="Loading your chats..." />;
+  }
 
   return (
     <ThemedView style={styles.container}>

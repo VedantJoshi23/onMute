@@ -32,31 +32,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadUserData();
+    
+    // Safety timeout - if loading takes more than 10 seconds, something is wrong
+    const timeout = setTimeout(() => {
+      console.error('[AuthContext] Loading timeout - forcing isLoading to false');
+      setIsLoading(false);
+    }, 10000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const loadUserData = async () => {
     try {
-      console.log('Loading user data...');
+      console.log('[AuthContext] Starting loadUserData...');
       const userData = await SecureStore.getItemAsync(USER_KEY);
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
       
-      console.log('Stored userData:', userData ? 'Found' : 'Not found');
-      console.log('Stored token:', token ? 'Found' : 'Not found');
+      console.log('[AuthContext] Stored userData:', userData ? 'Found' : 'Not found');
+      console.log('[AuthContext] Stored token:', token ? 'Found' : 'Not found');
       
       if (userData && token) {
         const parsedUser = JSON.parse(userData);
-        console.log('Restoring user session for:', parsedUser.email);
+        console.log('[AuthContext] Restoring user session for:', parsedUser.email);
         setUser(parsedUser);
-        console.log('Authentication state updated - isAuthenticated will be:', true);
+        console.log('[AuthContext] Authentication state updated - isAuthenticated will be:', true);
       } else {
-        console.log('No valid session found');
-        console.log('Authentication state updated - isAuthenticated will be:', false);
+        console.log('[AuthContext] No stored credentials found - user not authenticated');
+        setUser(null);
       }
     } catch (error) {
-      console.error('Failed to load user data:', error);
+      console.error('[AuthContext] Error loading user data:', error);
+      setUser(null);
     } finally {
+      console.log('[AuthContext] Setting isLoading to false');
       setIsLoading(false);
-      console.log('Authentication check complete - isLoading set to false');
     }
   };
 
