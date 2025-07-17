@@ -13,7 +13,8 @@
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app needs access to the microphone to record audio messages for transcription.",
         "NSCameraUsageDescription": "This app needs access to the camera to record videos."
-      }
+      },
+      "bundleIdentifier": "com.anonymous.onMute"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,8 +25,11 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_EXTERNAL_STORAGE"
-      ]
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_MEDIA_LOCATION"
+      ],
+      "package": "com.anonymous.onMute"
     },
     "web": {
       "bundler": "metro",

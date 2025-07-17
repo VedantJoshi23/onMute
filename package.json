@@ -4,11 +4,17 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:dev-client": "expo start --dev-client",
+    "start:clear": "expo start --clear",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "android:device": "expo run:android --device",
+    "ios": "expo run:ios",
+    "ios:device": "expo run:ios --device",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -45,7 +51,8 @@
     "react-native-screens": "~4.11.1",
     "react-native-uuid": "^2.0.3",
     "react-native-web": "~0.20.0",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "expo-dev-client": "~5.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
