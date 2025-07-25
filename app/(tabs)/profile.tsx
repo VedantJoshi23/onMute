@@ -51,7 +51,7 @@ export default function ProfileScreen() {
         <IconSymbol 
           name={icon as any} 
           size={24} 
-          color={colors.icon} 
+          color={colors.tabIconDefault} 
           style={styles.profileIcon}
         />
         <View style={styles.profileTextContainer}>
@@ -77,7 +77,7 @@ export default function ProfileScreen() {
     <ThemedView style={styles.container}>
       {/* Profile Header */}
       <View style={styles.header}>
-        <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
+        <View style={[styles.avatar, { backgroundColor: Colors.light.icon, marginTop: 20 }]}>
           <ThemedText style={styles.avatarText}>
             {user?.email?.charAt(0).toUpperCase() || 'U'}
           </ThemedText>
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
       {/* Logout Button */}
       <View style={styles.logoutSection}>
         <TouchableOpacity 
-          style={[styles.logoutButton, { backgroundColor: colors.tint }]}
+          style={[styles.logoutButton, { backgroundColor: Colors.light.tint }]}
           onPress={handleLogout}
         >
           <IconSymbol name="arrow.right.square" size={20} color="white" />

@@ -1,7 +1,7 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
+import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
@@ -18,6 +18,16 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'person.circle': 'account-circle',
+  'bell': 'notifications',
+  'lock': 'lock',
+  'questionmark.circle': 'help',
+  'info.circle': 'info',
+  'arrow.right.square': 'logout',
+  'message': 'chat-bubble-outline',
+  'message.fill': 'chat-bubble',
+  'person.crop.circle': 'account-circle',
+  'person.crop.circle.fill': 'account-circle',
 } as IconMapping;
 
 /**

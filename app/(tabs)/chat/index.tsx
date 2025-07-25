@@ -8,13 +8,13 @@ import { chatStorage, ChatListItem as StoredChatListItem } from '@/services/chat
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface ChatListItem {
@@ -144,7 +144,7 @@ export default function ChatListScreen() {
       onLongPress={() => handleDeleteChat(item.id, item.title)}
     >
       <View style={styles.chatItemContent}>
-        <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.icon }]}>
           <Text style={styles.avatarText}>
             {item.title.charAt(0).toUpperCase()}
           </Text>
@@ -200,7 +200,7 @@ export default function ChatListScreen() {
       <View style={[styles.header, { borderBottomColor: colors.tabIconDefault }]}>
         <ThemedText style={styles.headerTitle}>Chats</ThemedText>
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: colors.tint }]}
+          style={[styles.addButton, { backgroundColor: colors.tabIconDefault }]}
           onPress={() => setShowAddDialog(true)}
         >
           <Text style={styles.addButtonText}>+</Text>

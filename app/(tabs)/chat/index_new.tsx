@@ -8,13 +8,13 @@ import { chatStorage, ChatListItem as StoredChatListItem } from '@/services/chat
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface ChatListItem {

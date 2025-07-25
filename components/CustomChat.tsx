@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -21,9 +22,10 @@ interface ChatBubbleProps {
   message: ChatMessage;
   currentUser: ChatUser;
   colors: any;
+  colorScheme: 'light' | 'dark' | null | undefined;
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, currentUser, colors }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, currentUser, colors, colorScheme }) => {
   const isCurrentUser = message.user._id === currentUser._id;
   
   const formatTime = (date: Date) => {
@@ -51,7 +53,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, currentUser, colors })
         {
           backgroundColor: isCurrentUser ? colors.tint : colors.background,
           borderColor: colors.tabIconDefault,
-          shadowColor: '#000',
+          shadowColor: colors.text,
           shadowOffset: {
             width: 0,
             height: 1,
@@ -70,7 +72,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, currentUser, colors })
           </Text>
         )}
         {message.isAudioTranscription && isCurrentUser && (
-          <Text style={[styles.audioIndicator, { color: 'rgba(255,255,255,0.8)' }]}>
+          <Text style={[styles.audioIndicator, { 
+            color: colorScheme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.8)' 
+          }]}>
             🎤 Audio transcription
           </Text>
         )}
@@ -112,6 +116,7 @@ export const CustomChat: React.FC<CustomChatProps> = ({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const textInputRef = React.useRef<TextInput>(null);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   const {
@@ -214,6 +219,25 @@ export const CustomChat: React.FC<CustomChatProps> = ({
     }
   }, [isRecording, pulseAnim]);
 
+  // Add keyboard listeners for better scroll behavior
+  React.useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      // Scroll to bottom when keyboard appears
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      // Optional: Handle keyboard hide if needed
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
   // Sort messages by creation date (oldest first for proper chat order)
   const sortedMessages = [...messages].sort((a, b) => 
     new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -225,13 +249,16 @@ export const CustomChat: React.FC<CustomChatProps> = ({
     <KeyboardAvoidingView 
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 120}
+      enabled={true}
     >
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesList}
         contentContainerStyle={styles.messagesContainer}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         onContentSizeChange={() => {
           setTimeout(() => {
             scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -251,6 +278,7 @@ export const CustomChat: React.FC<CustomChatProps> = ({
               message={message}
               currentUser={user}
               colors={colors}
+              colorScheme={colorScheme}
             />
           ))
         )}
@@ -263,7 +291,7 @@ export const CustomChat: React.FC<CustomChatProps> = ({
         {isRecording ? (
           <View style={styles.recordingContainer}>
             <Animated.View style={[styles.recordingIndicator, { transform: [{ scale: pulseAnim }] }]}>
-              <View style={[styles.recordingDot, { backgroundColor: '#ff4444' }]} />
+              <View style={[styles.recordingDot, { backgroundColor: colorScheme === 'dark' ? '#ff6b6b' : '#ff4444' }]} />
             </Animated.View>
             <View style={styles.recordingInfo}>
               <Text style={[styles.recordingText, { color: colors.text }]}>
@@ -281,7 +309,7 @@ export const CustomChat: React.FC<CustomChatProps> = ({
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.stopButton, { backgroundColor: '#ff4444' }]}
+                style={[styles.stopButton, { backgroundColor: colorScheme === 'dark' ? '#ff6b6b' : '#ff4444' }]}
                 onPress={handleAudioRecording}
               >
                 <Text style={styles.stopButtonText}>Stop</Text>
@@ -297,22 +325,6 @@ export const CustomChat: React.FC<CustomChatProps> = ({
           </View>
         ) : (
           <>
-            {/* Test button for simulating audio transcription */}
-            <TouchableOpacity
-              style={[styles.audioButton, { 
-                backgroundColor: '#ff6b6b',
-                opacity: 0.9,
-                marginRight: 8,
-              }]}
-              onPress={() => {
-                console.log('Test audio transcription button pressed');
-                if (onAudioMessage) {
-                  onAudioMessage('This is a test transcription message', 'file://test-audio.m4a');
-                }
-              }}
-            >
-              <Text style={styles.audioButtonText}>🧪</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.audioButton, { 
                 backgroundColor: colors.tint,
@@ -325,8 +337,9 @@ export const CustomChat: React.FC<CustomChatProps> = ({
             </TouchableOpacity>
             <View style={styles.inputWrapper}>
               <TextInput
+                ref={textInputRef}
                 style={[styles.textInput, { 
-                  backgroundColor: colorScheme === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                  backgroundColor: colorScheme === 'dark' ? '#333333' : '#f8f8f8',
                   borderColor: colors.tabIconDefault,
                   color: colors.text 
                 }]}
@@ -337,12 +350,20 @@ export const CustomChat: React.FC<CustomChatProps> = ({
                 multiline
                 maxLength={maxLength}
                 onSubmitEditing={handleSend}
+                onFocus={() => {
+                  // Scroll to bottom when text input is focused
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 100);
+                }}
                 returnKeyType="send"
                 blurOnSubmit={false}
               />
               {inputText.length > maxLength * 0.8 && (
                 <Text style={[styles.characterCount, { 
-                  color: inputText.length >= maxLength ? '#ff4444' : colors.tabIconDefault 
+                  color: inputText.length >= maxLength 
+                    ? (colorScheme === 'dark' ? '#ff6b6b' : '#ff4444')
+                    : colors.tabIconDefault 
                 }]}>
                   {inputText.length}/{maxLength}
                 </Text>
@@ -375,6 +396,7 @@ const styles = StyleSheet.create({
   messagesContainer: {
     paddingVertical: 16,
     paddingHorizontal: 16,
+    paddingBottom: 8,
     flexGrow: 1,
   },
   emptyContainer: {
