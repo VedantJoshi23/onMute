@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from "expo-file-system";
 
 /**
  * Development utility to clear all chat data and simulate a fresh installation
@@ -9,25 +9,25 @@ export const clearAllChatData = async (): Promise<void> => {
     const CHATS_DIRECTORY = `${FileSystem.documentDirectory}chats/`;
     const CHAT_LIST_FILE = `${FileSystem.documentDirectory}chatList.json`;
 
-    console.log('Clearing all chat data...');
+    console.log("Clearing all chat data...");
 
     // Delete chats directory
     const dirInfo = await FileSystem.getInfoAsync(CHATS_DIRECTORY);
     if (dirInfo.exists) {
       await FileSystem.deleteAsync(CHATS_DIRECTORY);
-      console.log('Deleted chats directory');
+      console.log("Deleted chats directory");
     }
 
     // Delete chat list file
     const listInfo = await FileSystem.getInfoAsync(CHAT_LIST_FILE);
     if (listInfo.exists) {
       await FileSystem.deleteAsync(CHAT_LIST_FILE);
-      console.log('Deleted chat list file');
+      console.log("Deleted chat list file");
     }
 
-    console.log('All chat data cleared successfully');
+    console.log("All chat data cleared successfully");
   } catch (error) {
-    console.error('Error clearing chat data:', error);
+    console.error("Error clearing chat data:", error);
     throw error;
   }
 };
@@ -40,32 +40,32 @@ export const inspectChatStorage = async (): Promise<void> => {
     const CHATS_DIRECTORY = `${FileSystem.documentDirectory}chats/`;
     const CHAT_LIST_FILE = `${FileSystem.documentDirectory}chatList.json`;
 
-    console.log('=== Chat Storage Inspection ===');
-    
+    console.log("=== Chat Storage Inspection ===");
+
     // Check chats directory
     const dirInfo = await FileSystem.getInfoAsync(CHATS_DIRECTORY);
-    console.log('Chats directory exists:', dirInfo.exists);
-    
+    console.log("Chats directory exists:", dirInfo.exists);
+
     if (dirInfo.exists) {
       const files = await FileSystem.readDirectoryAsync(CHATS_DIRECTORY);
-      console.log('Chat files found:', files.length);
-      files.forEach(file => console.log('  -', file));
+      console.log("Chat files found:", files.length);
+      files.forEach((file) => console.log("  -", file));
     }
 
     // Check chat list file
     const listInfo = await FileSystem.getInfoAsync(CHAT_LIST_FILE);
-    console.log('Chat list file exists:', listInfo.exists);
-    
+    console.log("Chat list file exists:", listInfo.exists);
+
     if (listInfo.exists) {
       const content = await FileSystem.readAsStringAsync(CHAT_LIST_FILE);
       const chats = JSON.parse(content);
-      console.log('Chats in list:', chats.length);
-      chats.forEach((chat: any) => console.log('  -', chat.title));
+      console.log("Chats in list:", chats.length);
+      chats.forEach((chat: any) => console.log("  -", chat.title));
     }
 
-    console.log('=== End Inspection ===');
+    console.log("=== End Inspection ===");
   } catch (error) {
-    console.error('Error inspecting chat storage:', error);
+    console.error("Error inspecting chat storage:", error);
   }
 };
 

@@ -1,12 +1,15 @@
-import { AddChatDialog } from '@/components/AddChatDialog';
-import { ChatLoading } from '@/components/LoadingComponent';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { chatStorage, ChatListItem as StoredChatListItem } from '@/services/chatStorage';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { AddChatDialog } from "@/components/AddChatDialog";
+import { ChatLoading } from "@/components/LoadingComponent";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import {
+  chatStorage,
+  ChatListItem as StoredChatListItem,
+} from "@/services/chatStorage";
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -14,8 +17,8 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
 interface ChatListItem {
   id: string;
@@ -27,8 +30,8 @@ interface ChatListItem {
 
 export default function ChatListScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-  
+  const colors = Colors[colorScheme ?? "light"];
+
   const [chats, setChats] = useState<StoredChatListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false); // Start with false
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -37,32 +40,39 @@ export default function ChatListScreen() {
 
   const checkAndLoadChats = useCallback(async () => {
     try {
-      console.log('[ChatIndex] Starting checkAndLoadChats...');
-      
+      console.log("[ChatIndex] Starting checkAndLoadChats...");
+
       // Quick check if there are any chats to load
-      console.log('[ChatIndex] Checking for existing chats...');
+      console.log("[ChatIndex] Checking for existing chats...");
       const hasChats = await chatStorage.hasExistingChats();
-      console.log('[ChatIndex] Has existing chats:', hasChats);
-      
+      console.log("[ChatIndex] Has existing chats:", hasChats);
+
       if (!hasChats) {
-        console.log('[ChatIndex] No existing chats found - showing empty state');
+        console.log(
+          "[ChatIndex] No existing chats found - showing empty state"
+        );
         setChats([]);
         setHasCheckedForChats(true);
         return;
       }
 
       // Only show loading if there are chats to load
-      console.log('[ChatIndex] Setting loading to true for existing chats...');
+      console.log("[ChatIndex] Setting loading to true for existing chats...");
       setIsLoading(true);
-      console.log('[ChatIndex] Loading existing chats...');
+      console.log("[ChatIndex] Loading existing chats...");
       const loadedChats = await chatStorage.getAllChats();
-      console.log('[ChatIndex] Loaded chats:', loadedChats.length);
-      setChats(loadedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      console.log("[ChatIndex] Loaded chats:", loadedChats.length);
+      setChats(
+        loadedChats.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+      );
     } catch (error) {
-      console.error('[ChatIndex] Error loading chats:', error);
-      Alert.alert('Error', 'Failed to load chats');
+      console.error("[ChatIndex] Error loading chats:", error);
+      Alert.alert("Error", "Failed to load chats");
     } finally {
-      console.log('[ChatIndex] Setting loading states to false...');
+      console.log("[ChatIndex] Setting loading states to false...");
       setIsLoading(false);
       setIsRefreshing(false);
       setHasCheckedForChats(true);
@@ -71,13 +81,18 @@ export default function ChatListScreen() {
 
   const loadChats = useCallback(async () => {
     try {
-      console.log('Refreshing chats...');
+      console.log("Refreshing chats...");
       const loadedChats = await chatStorage.getAllChats();
-      console.log('Loaded chats:', loadedChats.length);
-      setChats(loadedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      console.log("Loaded chats:", loadedChats.length);
+      setChats(
+        loadedChats.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+      );
     } catch (error) {
-      console.error('Error loading chats:', error);
-      Alert.alert('Error', 'Failed to load chats');
+      console.error("Error loading chats:", error);
+      Alert.alert("Error", "Failed to load chats");
     } finally {
       setIsRefreshing(false);
     }
@@ -88,45 +103,51 @@ export default function ChatListScreen() {
     loadChats();
   }, [loadChats]);
 
-  const handleCreateChat = useCallback(async (title: string) => {
-    try {
-      console.log('Creating chat:', title);
-      const chatId = await chatStorage.createChat(title);
-      console.log('Chat created with ID:', chatId);
-      await loadChats(); // Reload the chat list
-      router.push(`/(tabs)/chat/${chatId}`);
-    } catch (error) {
-      console.error('Error creating chat:', error);
-      throw error;
-    }
-  }, [loadChats]);
+  const handleCreateChat = useCallback(
+    async (title: string) => {
+      try {
+        console.log("Creating chat:", title);
+        const chatId = await chatStorage.createChat(title);
+        console.log("Chat created with ID:", chatId);
+        await loadChats(); // Reload the chat list
+        router.push(`/(tabs)/chat/${chatId}`);
+      } catch (error) {
+        console.error("Error creating chat:", error);
+        throw error;
+      }
+    },
+    [loadChats]
+  );
 
   const handleChatPress = useCallback((chatId: string) => {
     router.push(`/(tabs)/chat/${chatId}`);
   }, []);
 
-  const handleDeleteChat = useCallback(async (chatId: string, chatTitle: string) => {
-    Alert.alert(
-      'Delete Chat',
-      `Are you sure you want to delete "${chatTitle}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await chatStorage.deleteChat(chatId);
-              await loadChats();
-            } catch (error) {
-              console.error('Error deleting chat:', error);
-              Alert.alert('Error', 'Failed to delete chat');
-            }
+  const handleDeleteChat = useCallback(
+    async (chatId: string, chatTitle: string) => {
+      Alert.alert(
+        "Delete Chat",
+        `Are you sure you want to delete "${chatTitle}"? This action cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await chatStorage.deleteChat(chatId);
+                await loadChats();
+              } catch (error) {
+                console.error("Error deleting chat:", error);
+                Alert.alert("Error", "Failed to delete chat");
+              }
+            },
           },
-        },
-      ]
-    );
-  }, [loadChats]);
+        ]
+      );
+    },
+    [loadChats]
+  );
 
   useEffect(() => {
     checkAndLoadChats();
@@ -134,7 +155,11 @@ export default function ChatListScreen() {
 
   // Show loading only if we haven't checked yet OR if we're actually loading existing chats
   if (!hasCheckedForChats || isLoading) {
-    return <ChatLoading message={isLoading ? "Loading your chats..." : "Checking for chats..."} />;
+    return (
+      <ChatLoading
+        message={isLoading ? "Loading your chats..." : "Checking for chats..."}
+      />
+    );
   }
 
   const renderChatItem = ({ item }: { item: StoredChatListItem }) => (
@@ -154,21 +179,25 @@ export default function ChatListScreen() {
             <ThemedText style={styles.chatTitle} numberOfLines={1}>
               {item.title}
             </ThemedText>
-            <ThemedText style={[styles.timestamp, { color: colors.tabIconDefault }]}>
+            <ThemedText
+              style={[styles.timestamp, { color: colors.tabIconDefault }]}
+            >
               {item.timestamp}
             </ThemedText>
           </View>
           <View style={styles.chatFooter}>
-            <ThemedText 
-              style={[styles.lastMessage, { color: colors.tabIconDefault }]} 
+            <ThemedText
+              style={[styles.lastMessage, { color: colors.tabIconDefault }]}
               numberOfLines={1}
             >
               {item.lastMessage}
             </ThemedText>
             {item.unreadCount && item.unreadCount > 0 && (
-              <View style={[styles.unreadBadge, { backgroundColor: colors.tint }]}>
+              <View
+                style={[styles.unreadBadge, { backgroundColor: colors.tint }]}
+              >
                 <Text style={styles.unreadText}>
-                  {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                  {item.unreadCount > 99 ? "99+" : item.unreadCount}
                 </Text>
               </View>
             )}
@@ -197,7 +226,12 @@ export default function ChatListScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.header, { borderBottomColor: colors.tabIconDefault }]}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: colors.tabIconDefault, marginTop: 80 },
+        ]}
+      >
         <ThemedText style={styles.headerTitle}>Chats</ThemedText>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.tabIconDefault }]}
@@ -211,7 +245,9 @@ export default function ChatListScreen() {
         data={chats}
         renderItem={renderChatItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={chats.length === 0 ? styles.emptyList : styles.list}
+        contentContainerStyle={
+          chats.length === 0 ? styles.emptyList : styles.list
+        }
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -238,28 +274,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   addButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   addButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   list: {
     padding: 0,
@@ -273,34 +309,34 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
   },
   chatItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   avatarText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   chatInfo: {
     flex: 1,
   },
   chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
   chatTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
     marginRight: 8,
   },
@@ -309,9 +345,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   chatFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   lastMessage: {
     fontSize: 14,
@@ -323,32 +359,32 @@ const styles = StyleSheet.create({
     minWidth: 20,
     height: 20,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 6,
   },
   unreadText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 40,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptySubtitle: {
     fontSize: 16,
     opacity: 0.7,
     marginBottom: 32,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptyButton: {
     paddingHorizontal: 24,
@@ -356,8 +392,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   emptyButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

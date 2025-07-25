@@ -1,7 +1,6 @@
 // Example integration with Google Speech-to-Text API
 // This is a reference implementation - not included in the main app
 
-
 interface TranscriptionConfig {
   apiKey: string;
   language: string;
@@ -22,7 +21,7 @@ class GoogleSpeechTranscriptionService {
 
       const requestBody = {
         config: {
-          encoding: 'WEBM_OPUS', // or appropriate format
+          encoding: "WEBM_OPUS", // or appropriate format
           sampleRateHertz: 44100,
           languageCode: this.config.language,
           enableAutomaticPunctuation: this.config.enableAutomaticPunctuation,
@@ -35,9 +34,9 @@ class GoogleSpeechTranscriptionService {
       const response = await fetch(
         `https://speech.googleapis.com/v1/speech:recognize?key=${this.config.apiKey}`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(requestBody),
         }
@@ -47,13 +46,13 @@ class GoogleSpeechTranscriptionService {
 
       if (result.results && result.results.length > 0) {
         const transcription = result.results[0].alternatives[0].transcript;
-        return transcription || 'Unable to transcribe audio';
+        return transcription || "Unable to transcribe audio";
       }
 
-      return 'No speech detected';
+      return "No speech detected";
     } catch (error) {
-      console.error('Transcription error:', error);
-      throw new Error('Failed to transcribe audio');
+      console.error("Transcription error:", error);
+      throw new Error("Failed to transcribe audio");
     }
   }
 
@@ -62,11 +61,11 @@ class GoogleSpeechTranscriptionService {
     // This is a simplified example
     const response = await fetch(audioUri);
     const blob = await response.blob();
-    
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1];
+        const base64 = (reader.result as string).split(",")[1];
         resolve(base64);
       };
       reader.onerror = reject;
@@ -99,4 +98,3 @@ const transcribeAudio = async (audioUri: string): Promise<string> => {
 
 export { GoogleSpeechTranscriptionService };
 export type { TranscriptionConfig };
-

@@ -1,12 +1,12 @@
-import { ChatMessage, ChatUser } from '@/types/chat';
+import { ChatMessage, ChatUser } from "@/types/chat";
 
 export class ChatUtils {
   /**
    * Creates a new message
    */
   static createMessage(
-    text: string, 
-    user: ChatUser, 
+    text: string,
+    user: ChatUser,
     id?: string | number
   ): ChatMessage {
     return {
@@ -34,7 +34,7 @@ export class ChatUtils {
     } else if (minutes > 0) {
       return `${minutes}m ago`;
     } else {
-      return 'Just now';
+      return "Just now";
     }
   }
 
@@ -42,8 +42,9 @@ export class ChatUtils {
    * Sorts messages by creation date (oldest first)
    */
   static sortMessages(messages: ChatMessage[]): ChatMessage[] {
-    return [...messages].sort((a, b) => 
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    return [...messages].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }
 
@@ -52,7 +53,7 @@ export class ChatUtils {
    */
   static getLastMessage(messages: ChatMessage[]): ChatMessage | null {
     if (messages.length === 0) return null;
-    
+
     const sorted = this.sortMessages(messages);
     return sorted[sorted.length - 1];
   }
@@ -60,20 +61,26 @@ export class ChatUtils {
   /**
    * Validates message text
    */
-  static validateMessage(text: string, maxLength: number = 1000): {
+  static validateMessage(
+    text: string,
+    maxLength: number = 1000
+  ): {
     isValid: boolean;
     error?: string;
   } {
     const trimmed = text.trim();
-    
+
     if (trimmed.length === 0) {
-      return { isValid: false, error: 'Message cannot be empty' };
+      return { isValid: false, error: "Message cannot be empty" };
     }
-    
+
     if (trimmed.length > maxLength) {
-      return { isValid: false, error: `Message too long (max ${maxLength} characters)` };
+      return {
+        isValid: false,
+        error: `Message too long (max ${maxLength} characters)`,
+      };
     }
-    
+
     return { isValid: true };
   }
 

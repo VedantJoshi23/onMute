@@ -1,6 +1,6 @@
-import { Audio } from 'expo-av';
-import { useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { Audio } from "expo-av";
+import { useRef, useState } from "react";
+import { Alert } from "react-native";
 
 export interface AudioRecordingState {
   isRecording: boolean;
@@ -22,18 +22,18 @@ export const useAudioRecording = () => {
   const requestPermissions = async (): Promise<boolean> => {
     try {
       const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
+      if (status !== "granted") {
         Alert.alert(
-          'Permission Required',
-          'Please grant microphone permission to record audio messages.',
-          [{ text: 'OK' }]
+          "Permission Required",
+          "Please grant microphone permission to record audio messages.",
+          [{ text: "OK" }]
         );
         return false;
       }
       return true;
     } catch (error) {
-      console.error('Error requesting permissions:', error);
-      Alert.alert('Error', 'Failed to request microphone permission');
+      console.error("Error requesting permissions:", error);
+      Alert.alert("Error", "Failed to request microphone permission");
       return false;
     }
   };
@@ -53,10 +53,10 @@ export const useAudioRecording = () => {
       });
 
       const recording = new Audio.Recording();
-      
+
       const recordingOptions = {
         android: {
-          extension: '.m4a',
+          extension: ".m4a",
           outputFormat: Audio.AndroidOutputFormat.MPEG_4,
           audioEncoder: Audio.AndroidAudioEncoder.AAC,
           sampleRate: 44100,
@@ -64,7 +64,7 @@ export const useAudioRecording = () => {
           bitRate: 128000,
         },
         ios: {
-          extension: '.m4a',
+          extension: ".m4a",
           outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
           audioQuality: Audio.IOSAudioQuality.MAX,
           sampleRate: 44100,
@@ -75,7 +75,7 @@ export const useAudioRecording = () => {
           linearPCMIsFloat: false,
         },
         web: {
-          mimeType: 'audio/webm',
+          mimeType: "audio/webm",
           bitsPerSecond: 128000,
         },
       };
@@ -83,7 +83,7 @@ export const useAudioRecording = () => {
       await recording.prepareToRecordAsync(recordingOptions);
       await recording.startAsync();
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isRecording: true,
         recording,
@@ -92,7 +92,7 @@ export const useAudioRecording = () => {
 
       // Start duration timer
       durationInterval.current = setInterval(() => {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           duration: prev.duration + 1,
         }));
@@ -100,8 +100,8 @@ export const useAudioRecording = () => {
 
       return true;
     } catch (error) {
-      console.error('Error starting recording:', error);
-      Alert.alert('Error', 'Failed to start recording');
+      console.error("Error starting recording:", error);
+      Alert.alert("Error", "Failed to start recording");
       return false;
     }
   };
@@ -116,7 +116,7 @@ export const useAudioRecording = () => {
         durationInterval.current = null;
       }
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isTranscribing: true,
@@ -125,7 +125,7 @@ export const useAudioRecording = () => {
       await state.recording.stopAndUnloadAsync();
       const uri = state.recording.getURI();
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         recording: null,
         isTranscribing: false,
@@ -134,15 +134,15 @@ export const useAudioRecording = () => {
 
       return uri;
     } catch (error) {
-      console.error('Error stopping recording:', error);
-      setState(prev => ({
+      console.error("Error stopping recording:", error);
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isTranscribing: false,
         recording: null,
         duration: 0,
       }));
-      Alert.alert('Error', 'Failed to stop recording');
+      Alert.alert("Error", "Failed to stop recording");
       return null;
     }
   };
@@ -166,7 +166,7 @@ export const useAudioRecording = () => {
         recording: null,
       });
     } catch (error) {
-      console.error('Error cancelling recording:', error);
+      console.error("Error cancelling recording:", error);
       setState({
         isRecording: false,
         isTranscribing: false,
@@ -179,10 +179,10 @@ export const useAudioRecording = () => {
   // Simulated transcription function (you would integrate with a real transcription service)
   const transcribeAudio = async (audioUri: string): Promise<string> => {
     try {
-      setState(prev => ({ ...prev, isTranscribing: true }));
+      setState((prev) => ({ ...prev, isTranscribing: true }));
 
       // Simulate transcription delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // For demo purposes, return a placeholder transcription
       // In a real app, you would send the audio to a transcription service
@@ -191,24 +191,27 @@ export const useAudioRecording = () => {
         "Hello, I'm speaking into the microphone and this should be transcribed.",
         "Audio transcription is working correctly in the chat app.",
         "This message was created from audio input using speech recognition.",
-        "The audio recording feature is now integrated with the chat system."
+        "The audio recording feature is now integrated with the chat system.",
       ];
 
-      const randomTranscription = sampleTranscriptions[Math.floor(Math.random() * sampleTranscriptions.length)];
+      const randomTranscription =
+        sampleTranscriptions[
+          Math.floor(Math.random() * sampleTranscriptions.length)
+        ];
 
-      setState(prev => ({ ...prev, isTranscribing: false }));
+      setState((prev) => ({ ...prev, isTranscribing: false }));
       return randomTranscription;
     } catch (error) {
-      console.error('Error transcribing audio:', error);
-      setState(prev => ({ ...prev, isTranscribing: false }));
-      throw new Error('Failed to transcribe audio');
+      console.error("Error transcribing audio:", error);
+      setState((prev) => ({ ...prev, isTranscribing: false }));
+      throw new Error("Failed to transcribe audio");
     }
   };
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return {

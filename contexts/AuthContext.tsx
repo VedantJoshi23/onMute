@@ -1,5 +1,5 @@
-import * as SecureStore from 'expo-secure-store';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as SecureStore from "expo-secure-store";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface User {
   id: string;
@@ -18,12 +18,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_KEY = 'userData';
-const TOKEN_KEY = 'authToken';
+const USER_KEY = "userData";
+const TOKEN_KEY = "authToken";
 
 // Helper function to create valid SecureStore keys from email addresses
 const sanitizeEmailForKey = (email: string): string => {
-  return `user_${email.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+  return `user_${email.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -32,10 +32,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadUserData();
-    
+
     // Safety timeout - if loading takes more than 10 seconds, something is wrong
     const timeout = setTimeout(() => {
-      console.error('[AuthContext] Loading timeout - forcing isLoading to false');
+      console.error(
+        "[AuthContext] Loading timeout - forcing isLoading to false"
+      );
       setIsLoading(false);
     }, 10000);
 
@@ -44,80 +46,99 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserData = async () => {
     try {
-      console.log('[AuthContext] Starting loadUserData...');
+      console.log("[AuthContext] Starting loadUserData...");
       const userData = await SecureStore.getItemAsync(USER_KEY);
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      
-      console.log('[AuthContext] Stored userData:', userData ? 'Found' : 'Not found');
-      console.log('[AuthContext] Stored token:', token ? 'Found' : 'Not found');
-      
+
+      console.log(
+        "[AuthContext] Stored userData:",
+        userData ? "Found" : "Not found"
+      );
+      console.log("[AuthContext] Stored token:", token ? "Found" : "Not found");
+
       if (userData && token) {
         const parsedUser = JSON.parse(userData);
-        console.log('[AuthContext] Restoring user session for:', parsedUser.email);
+        console.log(
+          "[AuthContext] Restoring user session for:",
+          parsedUser.email
+        );
         setUser(parsedUser);
-        console.log('[AuthContext] Authentication state updated - isAuthenticated will be:', true);
+        console.log(
+          "[AuthContext] Authentication state updated - isAuthenticated will be:",
+          true
+        );
       } else {
-        console.log('[AuthContext] No stored credentials found - user not authenticated');
+        console.log(
+          "[AuthContext] No stored credentials found - user not authenticated"
+        );
         setUser(null);
       }
     } catch (error) {
-      console.error('[AuthContext] Error loading user data:', error);
+      console.error("[AuthContext] Error loading user data:", error);
       setUser(null);
     } finally {
-      console.log('[AuthContext] Setting isLoading to false');
+      console.log("[AuthContext] Setting isLoading to false");
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string, name?: string): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string,
+    name?: string
+  ): Promise<boolean> => {
     try {
-      console.log('Attempting login for:', email);
+      console.log("Attempting login for:", email);
       // Check if user exists by looking for user data with sanitized email as key
       const sanitizedKey = sanitizeEmailForKey(email);
       const existingUserData = await SecureStore.getItemAsync(sanitizedKey);
-      
+
       if (existingUserData) {
-        console.log('User found in storage');
+        console.log("User found in storage");
         const existingUser = JSON.parse(existingUserData);
         if (existingUser.password === password) {
-          console.log('Password matches, logging in user');
+          console.log("Password matches, logging in user");
           const userData: User = {
             id: existingUser.id,
             email: existingUser.email,
             name: existingUser.name,
           };
-          
+
           // Store current session data for persistence
           await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
-          await SecureStore.setItemAsync(TOKEN_KEY, 'authenticated');
+          await SecureStore.setItemAsync(TOKEN_KEY, "authenticated");
           setUser(userData);
-          console.log('Login successful');
+          console.log("Login successful");
           return true;
         } else {
-          console.log('Password does not match');
+          console.log("Password does not match");
         }
       } else {
-        console.log('User not found in storage');
+        console.log("User not found in storage");
       }
       return false;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
       return false;
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (
+    email: string,
+    password: string,
+    name: string
+  ): Promise<boolean> => {
     try {
-      console.log('Attempting registration for:', email);
+      console.log("Attempting registration for:", email);
       // Check if user already exists
       const sanitizedKey = sanitizeEmailForKey(email);
       const existingUserData = await SecureStore.getItemAsync(sanitizedKey);
       if (existingUserData) {
-        console.log('User already exists');
+        console.log("User already exists");
         return false; // User already exists
       }
 
-      console.log('Creating new user');
+      console.log("Creating new user");
       const newUser = {
         id: Date.now().toString(),
         email,
@@ -135,27 +156,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await SecureStore.setItemAsync(sanitizedKey, JSON.stringify(newUser));
       // Store current session data for persistence
       await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
-      await SecureStore.setItemAsync(TOKEN_KEY, 'authenticated');
-      
+      await SecureStore.setItemAsync(TOKEN_KEY, "authenticated");
+
       setUser(userData);
-      console.log('Registration successful');
+      console.log("Registration successful");
       return true;
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error("Registration failed:", error);
       return false;
     }
   };
 
   const logout = async () => {
     try {
-      console.log('Logging out user');
+      console.log("Logging out user");
       // Only clear session data, keep user credentials for future login
       await SecureStore.deleteItemAsync(USER_KEY);
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       setUser(null);
-      console.log('Logout successful');
+      console.log("Logout successful");
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
@@ -174,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

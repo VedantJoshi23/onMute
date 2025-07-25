@@ -1,9 +1,9 @@
-import { ChatMessage, ChatUser } from '@/types/chat';
+import { ChatMessage, ChatUser } from "@/types/chat";
 
 // Simulated other user for audio transcriptions
 export const AUDIO_TRANSCRIPTION_USER: ChatUser = {
-  _id: 'audio-user',
-  name: 'Voice Assistant',
+  _id: "audio-user",
+  name: "Voice Assistant",
   avatar: undefined,
 };
 
@@ -24,23 +24,28 @@ export const createAudioTranscriptionMessage = (
 
 // Utility to validate audio URI
 export const isValidAudioUri = (uri: string): boolean => {
-  return !!(uri && (uri.startsWith('file://') || uri.startsWith('content://') || uri.startsWith('http')));
+  return !!(
+    uri &&
+    (uri.startsWith("file://") ||
+      uri.startsWith("content://") ||
+      uri.startsWith("http"))
+  );
 };
 
 // Utility to format transcription text
 export const formatTranscription = (text: string): string => {
   if (!text || text.trim().length === 0) {
-    return 'Unable to transcribe audio';
+    return "Unable to transcribe audio";
   }
-  
+
   // Capitalize first letter and ensure proper punctuation
   const trimmed = text.trim();
   const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-  
+
   // Add period if no ending punctuation
   if (!/[.!?]$/.test(capitalized)) {
-    return capitalized + '.';
+    return capitalized + ".";
   }
-  
+
   return capitalized;
 };
