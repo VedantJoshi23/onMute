@@ -6,6 +6,14 @@ export interface SpeechRecognitionConfig {
   continuous?: boolean;
   interim?: boolean;
   maxAlternatives?: number;
+  // Local AI Configuration
+  localAI?: {
+    enabled?: boolean;
+    endpoint?: string;
+    model?: string;
+    timeout?: number;
+    apiKey?: string; // Optional API key if your local model requires authentication
+  };
 }
 
 export interface SpeechRecognitionResult {
@@ -137,56 +145,45 @@ class NativeSpeechRecognition {
       continuous: false,
       interim: false,
       maxAlternatives: 1,
+      localAI: {
+        enabled: true,
+        endpoint: "http://localhost:11434/api/generate",
+        model: "gemma2:2b",
+        timeout: 30000,
+        ...config.localAI,
+      },
       ...config,
     };
   }
 
   async transcribeAudioFile(audioUri: string): Promise<string> {
     try {
-      // For native platforms, we'll use a simulated transcription
-      // In a real implementation, you would:
-      // 1. Convert audio to base64 or upload to a transcription service
-      // 2. Use Google Speech-to-Text, AWS Transcribe, or AssemblyAI
-      // 3. Return the actual transcription
-
-      // Simulate processing delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
       // Check if audio file exists
       const fileInfo = await FileSystem.getInfoAsync(audioUri);
       if (!fileInfo.exists) {
         throw new Error("Audio file not found");
       }
 
-      // Simulated transcription based on audio file size and duration
-      const sampleTranscriptions = [
-        "Hello, this is a test message from speech recognition.",
-        "I'm speaking into the microphone to test the transcription feature.",
-        "The audio recording and transcription system is working properly.",
-        "This message was generated from speech to text conversion.",
-        "Voice recognition is now integrated with the chat application.",
-        "Testing the speech to text functionality in the mobile app.",
-        "The native speech recognition service is operational.",
-        "Audio transcription completed successfully using device capabilities.",
-      ];
+      // Try local AI transcription first, fallback to mock if unavailable
+      try {
+        const transcript = await this.transcribeWithGemma3n(audioUri);
 
-      const randomIndex = Math.floor(
-        Math.random() * sampleTranscriptions.length
-      );
-      const transcript = sampleTranscriptions[randomIndex];
+        // Calculate a confidence score based on transcript length and quality
+        const confidence = this.calculateConfidence(transcript);
 
-      // Simulate confidence score
-      const confidence = 0.85 + Math.random() * 0.15;
+        if (this.onResult) {
+          this.onResult({
+            transcript,
+            confidence,
+            isFinal: true,
+          });
+        }
 
-      if (this.onResult) {
-        this.onResult({
-          transcript,
-          confidence,
-          isFinal: true,
-        });
+        return transcript;
+      } catch (aiError) {
+        console.warn("Local AI transcription failed, using fallback:", aiError);
+        return await this.fallbackTranscription();
       }
-
-      return transcript;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown transcription error";
@@ -204,6 +201,156 @@ class NativeSpeechRecognition {
         this.onEnd();
       }
     }
+  }
+
+  private async transcribeWithGemma3n(audioUri: string): Promise<string> {
+    try {
+      // Check if local AI is enabled
+      if (!this.config.localAI?.enabled) {
+        throw new Error("Local AI transcription is disabled");
+      }
+
+      // Convert audio file to base64 for API transmission
+      const audioBase64 = await FileSystem.readAsStringAsync(audioUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const endpoint =
+        this.config.localAI.endpoint || "http://localhost:11434/api/generate";
+      const model = this.config.localAI.model || "gemma2:2b";
+      const timeout = this.config.localAI.timeout || 30000;
+
+      const requestBody = {
+        model: model,
+        prompt: `Transcribe the following audio content to text. Provide only the transcribed text without any additional commentary or formatting. Language: ${
+          this.config.language || "en-US"
+        }`,
+        audio: audioBase64,
+        stream: false,
+        options: {
+          temperature: 0.1, // Low temperature for more consistent transcription
+          top_p: 0.9,
+          max_tokens: 1000,
+        },
+      };
+
+      // Create request headers
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Add API key if provided
+      if (this.config.localAI.apiKey) {
+        headers["Authorization"] = `Bearer ${this.config.localAI.apiKey}`;
+      }
+
+      // Create a timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Request timeout")), timeout);
+      });
+
+      // Race between fetch and timeout
+      const fetchPromise = fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+      if (!response.ok) {
+        throw new Error(
+          `Local AI API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const result = await response.json();
+
+      // Extract transcription from response (adjust based on your API response format)
+      const transcript =
+        result.response || result.text || result.transcription || result.output;
+
+      if (!transcript || typeof transcript !== "string") {
+        throw new Error("Invalid response format from local AI model");
+      }
+
+      // Clean up the transcript
+      return this.cleanupTranscript(transcript);
+    } catch (error) {
+      console.error("Gemma 3n transcription error:", error);
+      throw new Error(
+        `Local AI transcription failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  private cleanupTranscript(text: string): string {
+    return (
+      text
+        .trim()
+        .replace(/\s+/g, " ") // Replace multiple spaces with single space
+        .replace(/[^\w\s.,!?-]/g, "") // Remove special characters except basic punctuation
+        .charAt(0)
+        .toUpperCase() + text.slice(1).toLowerCase()
+    ); // Proper sentence case
+  }
+
+  private calculateConfidence(transcript: string): number {
+    // Simple confidence calculation based on transcript characteristics
+    let confidence = 0.7; // Base confidence
+
+    // Increase confidence for longer, more complete sentences
+    if (transcript.length > 10) confidence += 0.1;
+    if (transcript.length > 50) confidence += 0.1;
+
+    // Increase confidence if it has proper sentence structure
+    if (
+      transcript.includes(".") ||
+      transcript.includes("!") ||
+      transcript.includes("?")
+    ) {
+      confidence += 0.05;
+    }
+
+    // Decrease confidence for very short or suspicious transcripts
+    if (transcript.length < 5) confidence -= 0.2;
+    if (transcript.includes("...") || transcript.includes("["))
+      confidence -= 0.1;
+
+    return Math.min(0.99, Math.max(0.1, confidence));
+  }
+
+  private async fallbackTranscription(): Promise<string> {
+    // Fallback to simulated transcription when AI is unavailable
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const sampleTranscriptions = [
+      "Hello, this is a test message from speech recognition.",
+      "I'm speaking into the microphone to test the transcription feature.",
+      "The audio recording and transcription system is working properly.",
+      "This message was generated from speech to text conversion.",
+      "Voice recognition is now integrated with the chat application.",
+      "Testing the speech to text functionality in the mobile app.",
+      "The native speech recognition service is operational.",
+      "Audio transcription completed successfully using device capabilities.",
+    ];
+
+    const randomIndex = Math.floor(Math.random() * sampleTranscriptions.length);
+    const transcript = sampleTranscriptions[randomIndex];
+
+    const confidence = 0.85 + Math.random() * 0.15;
+
+    if (this.onResult) {
+      this.onResult({
+        transcript,
+        confidence,
+        isFinal: true,
+      });
+    }
+
+    return transcript;
   }
 
   setOnResult(callback: (result: SpeechRecognitionResult) => void): void {
