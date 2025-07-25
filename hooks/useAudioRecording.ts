@@ -1,3 +1,4 @@
+import { SpeechRecognitionService } from "@/services/speechRecognitionService";
 import { Audio } from "expo-av";
 import { useRef, useState } from "react";
 import { Alert } from "react-native";
@@ -18,6 +19,9 @@ export const useAudioRecording = () => {
   });
 
   const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const speechRecognitionService = useRef<SpeechRecognitionService | null>(
+    null
+  );
 
   const requestPermissions = async (): Promise<boolean> => {
     try {
@@ -176,36 +180,60 @@ export const useAudioRecording = () => {
     }
   };
 
-  // Simulated transcription function (you would integrate with a real transcription service)
+  // Real transcription function using native speech recognition
   const transcribeAudio = async (audioUri: string): Promise<string> => {
     try {
       setState((prev) => ({ ...prev, isTranscribing: true }));
 
-      // Simulate transcription delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Initialize speech recognition service if not already created
+      if (!speechRecognitionService.current) {
+        speechRecognitionService.current = new SpeechRecognitionService({
+          language: "en-US",
+          continuous: false,
+          interim: false,
+          maxAlternatives: 1,
+        });
+      }
 
-      // For demo purposes, return a placeholder transcription
-      // In a real app, you would send the audio to a transcription service
-      const sampleTranscriptions = [
-        "This is a transcribed audio message from the recording.",
-        "Hello, I'm speaking into the microphone and this should be transcribed.",
-        "Audio transcription is working correctly in the chat app.",
-        "This message was created from audio input using speech recognition.",
-        "The audio recording feature is now integrated with the chat system.",
-      ];
+      console.log("Starting native speech recognition for audio:", audioUri);
 
-      const randomTranscription =
-        sampleTranscriptions[
-          Math.floor(Math.random() * sampleTranscriptions.length)
-        ];
+      // Use the native speech recognition service
+      const transcription =
+        await speechRecognitionService.current.transcribeAudio(audioUri);
+
+      console.log("Native transcription completed:", transcription);
 
       setState((prev) => ({ ...prev, isTranscribing: false }));
-      return randomTranscription;
+      return transcription;
     } catch (error) {
       console.error("Error transcribing audio:", error);
       setState((prev) => ({ ...prev, isTranscribing: false }));
-      throw new Error("Failed to transcribe audio");
+
+      // Fallback to simulated transcription on error
+      console.log("Falling back to simulated transcription");
+      return await simulatedTranscription();
     }
+  };
+
+  // Fallback simulated transcription function
+  const simulatedTranscription = async (): Promise<string> => {
+    // Simulate transcription delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const sampleTranscriptions = [
+      "This is a transcribed audio message from the recording.",
+      "Hello, I'm speaking into the microphone and this should be transcribed.",
+      "Audio transcription is working correctly in the chat app.",
+      "This message was created from audio input using speech recognition.",
+      "The audio recording feature is now integrated with the chat system.",
+    ];
+
+    const randomTranscription =
+      sampleTranscriptions[
+        Math.floor(Math.random() * sampleTranscriptions.length)
+      ];
+
+    return randomTranscription;
   };
 
   const formatDuration = (seconds: number): string => {

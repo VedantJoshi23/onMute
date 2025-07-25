@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { useAudioRecording } from "@/hooks/useAudioRecording";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { speakChatMessage, stopSpeaking } from "@/services/textToSpeechService";
 import { ChatMessage, ChatUser } from "@/types/chat";
 import React from "react";
 import {
@@ -32,6 +33,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   colorScheme,
 }) => {
   const isCurrentUser = message.user._id === currentUser._id;
+  const [isSpeaking, setIsSpeaking] = React.useState(false);
 
   const formatTime = (date: Date) => {
     const now = new Date();
@@ -46,6 +48,29 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleSpeakMessage = async () => {
+    try {
+      if (isSpeaking) {
+        // Stop current speech
+        await stopSpeaking();
+        setIsSpeaking(false);
+      } else {
+        // Start speaking the message
+        setIsSpeaking(true);
+        await speakChatMessage(
+          message.text,
+          message.user.name,
+          message.isAudioTranscription
+        );
+        setIsSpeaking(false);
+      }
+    } catch (error) {
+      console.error("Error with text-to-speech:", error);
+      setIsSpeaking(false);
+      Alert.alert("Error", "Failed to speak message");
+    }
   };
 
   return (
@@ -90,7 +115,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
               {
                 color:
                   colorScheme === "dark"
-                    ? "rgba(255,255,255,0.9)"
+                    ? "rgba(0,0,0,0.9)"
                     : "rgba(255,255,255,0.8)",
               },
             ]}
@@ -101,23 +126,73 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
         <Text
           style={[
             styles.messageText,
-            { color: isCurrentUser ? "white" : colors.text },
+            {
+              color: isCurrentUser
+                ? colorScheme === "dark"
+                  ? "#000000"
+                  : "#ffa0fd"
+                : colors.text,
+            },
           ]}
         >
           {message.text}
         </Text>
-        <Text
-          style={[
-            styles.messageTime,
-            {
-              color: isCurrentUser
-                ? "rgba(255,255,255,0.7)"
-                : colors.tabIconDefault,
-            },
-          ]}
-        >
-          {formatTime(message.createdAt)}
-        </Text>
+        <View style={styles.messageFooter}>
+          <Text
+            style={[
+              styles.messageTime,
+              {
+                color: isCurrentUser
+                  ? colorScheme === "dark"
+                    ? "rgba(0,0,0,0.7)"
+                    : "rgba(255,255,255,0.7)"
+                  : colors.tabIconDefault,
+              },
+            ]}
+          >
+            {formatTime(message.createdAt)}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.speakButton,
+              {
+                backgroundColor: isSpeaking
+                  ? colorScheme === "dark"
+                    ? "#4CAF50"
+                    : "#45a049"
+                  : isCurrentUser
+                  ? colorScheme === "dark"
+                    ? "rgba(0,0,0,0.2)"
+                    : "rgba(255,255,255,0.2)"
+                  : colors.background,
+                borderColor: isCurrentUser
+                  ? colorScheme === "dark"
+                    ? "rgba(0,0,0,0.3)"
+                    : "rgba(255,255,255,0.3)"
+                  : colors.tabIconDefault,
+              },
+            ]}
+            onPress={handleSpeakMessage}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.speakButtonText,
+                {
+                  color: isSpeaking
+                    ? "white"
+                    : isCurrentUser
+                    ? colorScheme === "dark"
+                      ? "rgba(0,0,0,0.9)"
+                      : "rgba(255,255,255,0.9)"
+                    : colors.text,
+                },
+              ]}
+            >
+              {isSpeaking ? "🔇" : "🔊"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -141,6 +216,7 @@ export const CustomChat: React.FC<CustomChatProps> = ({
   onAudioMessage,
 }) => {
   const [inputText, setInputText] = React.useState("");
+  const [isSpeakingInput, setIsSpeakingInput] = React.useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const scrollViewRef = React.useRef<ScrollView>(null);
@@ -272,6 +348,13 @@ export const CustomChat: React.FC<CustomChatProps> = ({
     return () => {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
+    };
+  }, []);
+
+  // Cleanup speech when component unmounts
+  React.useEffect(() => {
+    return () => {
+      stopSpeaking();
     };
   }, []);
 
@@ -531,6 +614,22 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.7,
   },
+  messageFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  speakButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  speakButtonText: {
+    fontSize: 12,
+  },
   inputContainer: {
     flexDirection: "row",
     paddingHorizontal: 16,
@@ -579,6 +678,17 @@ const styles = StyleSheet.create({
   },
   audioButtonText: {
     fontSize: 20,
+  },
+  ttsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  ttsButtonText: {
+    fontSize: 18,
   },
   recordingContainer: {
     flex: 1,

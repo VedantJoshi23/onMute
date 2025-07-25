@@ -1,3 +1,4 @@
+import { SpeechIntegrationDemo } from "@/components/SpeechIntegrationDemo";
 import { useAuth } from "@/contexts/AuthContext";
 import { chatStorage } from "@/services/chatStorage";
 import { clearAllChatData, inspectChatStorage } from "@/utils/devUtils";
@@ -16,6 +17,7 @@ export default function DebugScreen() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [chatStorageInfo, setChatStorageInfo] = useState<string>("Not checked");
+  const [showSpeechDemo, setShowSpeechDemo] = useState<boolean>(false);
 
   useEffect(() => {
     const info = [
@@ -69,6 +71,22 @@ export default function DebugScreen() {
     );
   };
 
+  if (showSpeechDemo) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.demoHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setShowSpeechDemo(false)}
+          >
+            <Text style={styles.backButtonText}>← Back to Debug</Text>
+          </TouchableOpacity>
+        </View>
+        <SpeechIntegrationDemo />
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Debug Information</Text>
@@ -100,6 +118,12 @@ export default function DebugScreen() {
           onPress={clearAllData}
         >
           <Text style={styles.buttonText}>Clear All Data</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: "#4CAF50" }]}
+          onPress={() => setShowSpeechDemo(true)}
+        >
+          <Text style={styles.buttonText}>Speech Integration Demo</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -149,5 +173,19 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  demoHeader: {
+    padding: 16,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  backButton: {
+    alignSelf: "flex-start",
+  },
+  backButtonText: {
+    color: "#667eea",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
